@@ -8,6 +8,9 @@
 #include "LcdDriver/Dogs102x64_UC1701.h"
 #include "peripherals.h"
 #include "notes.h"
+#include "HEYYEYAAEYAAAEYAEYAA.h"
+
+typedef enum {S_MENU, S_COUNTDOWN, S_PLAY, S_LOSE} state_t;
 
 void swDelay(int numLoops);
 int read_push_button();
@@ -19,9 +22,6 @@ void play_note(Note* note);
 
 void main(void)
 {
-    // Variable to record button state for later
-    CAP_BUTTON keypressed_state;
-
 	// Stop WDT
     WDTCTL = WDTPW | WDTHOLD;		// Stop watchdog timer
 
@@ -29,27 +29,20 @@ void main(void)
     configTouchPadLEDs();
     configDisplay();
     configCapButtons();
+    state_t state = S_MENU;
 
-    Note* testNote;
-    testNote = (Note*)malloc(sizeof(Note*));
-    testNote->LED = TOUCHPAD_1;
-    testNote->pitch = NOTE_C5;
     while(1)
     {
-    	switch(read_push_button())
+    	switch(state)
     	{
-    	case 1:
-    		configLED1_3(0x01);
-    		BuzzerOff();
+    	case S_MENU:
     		break;
-    	case 2:
-    		configLED1_3(0x02);
-            play_note(testNote);
+    	case S_COUNTDOWN:
     		break;
-    	case 3:
-    		configLED1_3(0x04);
-    	default:
-    		configLED1_3(0x00);
+    	case S_PLAY:
+    		break;
+    	case S_LOSE:
+    		break;
     	}
     }
 }

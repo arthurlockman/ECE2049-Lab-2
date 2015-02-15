@@ -7,10 +7,6 @@ typedef struct {
     char LED; ///< LED to light for note
 } Note;
 
-//Example: NOTE Duration(multiples of 8th notes) TouchpadLED
-//NOTE_A4 1 TOUCHPAD_1
-//NOTE_A5 3 TOUCHPAD_2
-
 #define NOTE_B0  31
 #define NOTE_C1  33
 #define NOTE_CS1 35
