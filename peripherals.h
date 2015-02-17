@@ -32,6 +32,7 @@
 #define TOUCHPAD_3 BIT3
 #define TOUCHPAD_4 BIT4
 #define TOUCHPAD_5 BIT5
+#define TOUCHPAD_N ~(BIT1|BIT2|BIT3|BIT4|BIT5)
 
 // You may find it useful to define a new type for representing the
 // capacitive buttons. Since we have fewer than 8 buttons, we can use

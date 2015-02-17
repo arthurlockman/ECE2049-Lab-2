@@ -19,6 +19,9 @@ void BuzzerOnFreq(int freq);
 int get_touchpad();
 void set_touchpad(char states);
 void play_note(Note* note);
+void swDelayShort(int numLoops);
+
+int note = 0;
 
 void main(void)
 {
@@ -31,19 +34,25 @@ void main(void)
     configCapButtons();
     state_t state = S_MENU;
 
+    GrClearDisplay(&g_sContext);
+    GrImageDraw(&g_sContext, &he_man_img, 0, 0);
+    GrFlush(&g_sContext);
     while(1)
     {
-    	switch(state)
-    	{
-    	case S_MENU:
-    		break;
-    	case S_COUNTDOWN:
-    		break;
-    	case S_PLAY:
-    		break;
-    	case S_LOSE:
-    		break;
-    	}
+//    	switch(state)
+//    	{
+//    	case S_MENU:
+//    		break;
+//    	case S_COUNTDOWN:
+//    		break;
+//    	case S_PLAY:
+//    		break;
+//    	case S_LOSE:
+//    		break;
+//    	}
+    	play_note(&HEYYEYAAEYAAAEYAEYAA[note]);
+    	if (note >= 104) note = 0;
+    	else note++;
     }
 }
 
@@ -81,6 +90,14 @@ void play_note(Note* note)
 	set_touchpad(note->LED);
 	BuzzerOnFreq(note->pitch);
 	//Deal with duration.
+	int i;
+	for (i = 0; i < note->duration; i++)
+	{
+		swDelayShort(13);
+	}
+	BuzzerOff();
+	set_touchpad(TOUCHPAD_N);
+	swDelayShort(2);
 }
 
 void set_touchpad(char states)
@@ -155,6 +172,19 @@ void swDelay(int numLoops)
     for (j = 0; j < numLoops; j++)
     {
         i = 50000;                   // SW Delay
+        while (i > 0)               // could also have used while (i)
+            i--;
+    }
+}
+
+void swDelayShort(int numLoops)
+{
+    volatile unsigned long int i, j; // volatile to prevent optimization
+    // by compiler
+
+    for (j = 0; j < numLoops; j++)
+    {
+        i = 500;                   // SW Delay
         while (i > 0)               // could also have used while (i)
             i--;
     }
