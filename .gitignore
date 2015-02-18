@@ -3,3 +3,4 @@ driverlib/*
 grlib/*
 Images/*
 LCDDriver/*
+._.DS_Store

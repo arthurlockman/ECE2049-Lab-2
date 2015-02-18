@@ -3,7 +3,7 @@
 
 typedef struct {
     unsigned int pitch; ///< Pitch as defined in notes.h
-    unsigned int duration; ///< Duration as defined as multiples of 8th notes
+    unsigned int duration; ///< Duration as defined as multiples of 16th notes
     char LED; ///< LED to light for note
 } Note;
 

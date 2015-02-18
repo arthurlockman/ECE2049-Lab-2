@@ -10,7 +10,7 @@
 #include "notes.h"
 #include "HEYYEYAAEYAAAEYAEYAA.h"
 
-typedef enum {S_MENU, S_COUNTDOWN, S_PLAY, S_LOSE} state_t;
+typedef enum {S_MENU, S_COUNTDOWN, S_PLAY, S_LOSE, S_WIN} state_t;
 
 void swDelay(int numLoops);
 int read_push_button();
@@ -20,13 +20,35 @@ int get_touchpad();
 void set_touchpad(char states);
 void play_note(Note* note);
 void swDelayShort(int numLoops);
+void runtimerA2(void);
+void stoptimerA2(void);
+void resetGlobals(void);
 
 int note = 0;
+unsigned int sixteenths_passed = 0;
+volatile unsigned int count = 0;
+volatile unsigned int sixteenths = 0;
+int countdown_state = 1;
+int note_errors = 0;
+int total_errors = 0;
+int pad;
+int dur;
+unsigned int _sixteenths;
+
+#pragma vector=TIMER2_A0_VECTOR
+__interrupt void TimerA2_ISR(void)
+{
+	count++;
+	if (count % 13 == 0)
+		sixteenths++;
+}
 
 void main(void)
 {
 	// Stop WDT
     WDTCTL = WDTPW | WDTHOLD;		// Stop watchdog timer
+
+    _BIS_SR(GIE);
 
     //Perform initializations (see peripherals.c)
     configTouchPadLEDs();
@@ -35,25 +57,157 @@ void main(void)
     state_t state = S_MENU;
 
     GrClearDisplay(&g_sContext);
-    GrImageDraw(&g_sContext, &he_man_img, 0, 0);
-    GrFlush(&g_sContext);
     while(1)
     {
-//    	switch(state)
-//    	{
-//    	case S_MENU:
-//    		break;
-//    	case S_COUNTDOWN:
-//    		break;
-//    	case S_PLAY:
-//    		break;
-//    	case S_LOSE:
-//    		break;
-//    	}
-    	play_note(&HEYYEYAAEYAAAEYAEYAA[note]);
-    	if (note >= 104) note = 0;
-    	else note++;
+    	switch(state)
+    	{
+    	case S_MENU:
+    		GrClearDisplay(&g_sContext);
+			GrStringDrawCentered(&g_sContext, "MSP430 HERO", AUTO_STRING_LENGTH,
+			                                 51, 20, TRANSPARENT_TEXT);
+			GrStringDrawCentered(&g_sContext, "PRESS S1 TO START", AUTO_STRING_LENGTH,
+			                                 51, 40, TRANSPARENT_TEXT);
+			GrStringDrawCentered(&g_sContext, "PRESS S2 TO QUIT", AUTO_STRING_LENGTH,
+			                                 51, 50, TRANSPARENT_TEXT);
+			GrFlush(&g_sContext);
+    		if (read_push_button() == 1)
+    		{
+    			state = S_COUNTDOWN;
+    			runtimerA2();
+    			countdown_state = 1;
+    			resetGlobals();
+    		}
+    		break;
+    	case S_COUNTDOWN:
+    		GrClearDisplay(&g_sContext);
+    		switch (countdown_state)
+    		{
+    		case 1:
+    			GrStringDrawCentered(&g_sContext, "3...", AUTO_STRING_LENGTH,
+    			                                 51, 36, TRANSPARENT_TEXT);
+    			configLED1_3(BIT0);
+    			BuzzerOnFreq(NOTE_C5);
+    			break;
+    		case 2:
+    			GrStringDrawCentered(&g_sContext, "2...", AUTO_STRING_LENGTH,
+    			                                 51, 36, TRANSPARENT_TEXT);
+    			configLED1_3(BIT0 | BIT1);
+    			BuzzerOnFreq(NOTE_G4);
+    			break;
+    		case 3:
+    			GrStringDrawCentered(&g_sContext, "1...", AUTO_STRING_LENGTH,
+    			                                 51, 36, TRANSPARENT_TEXT);
+    			configLED1_3(BIT0 | BIT1 | BIT2);
+    			BuzzerOnFreq(NOTE_E4);
+    			break;
+    		case 4:
+    			GrStringDrawCentered(&g_sContext, "Go!", AUTO_STRING_LENGTH,
+    			                                 51, 36, TRANSPARENT_TEXT);
+    			set_touchpad(TOUCHPAD_1|TOUCHPAD_2|TOUCHPAD_3|TOUCHPAD_4|TOUCHPAD_5);
+    			configLED1_3(~(BIT0 | BIT1 | BIT2));
+    			BuzzerOnFreq(NOTE_C4);
+    			break;
+    		case 5:
+    			state = S_PLAY;
+    			stoptimerA2();
+    			resetGlobals();
+    		    GrClearDisplay(&g_sContext);
+    		    GrImageDraw(&g_sContext, &he_man_img, 0, 0);
+    		    GrFlush(&g_sContext);
+    		    BuzzerOff();
+    			runtimerA2();
+    			break;
+    		}
+    		GrFlush(&g_sContext);
+    		if (sixteenths % 8 == 0)
+    			countdown_state++;
+    		break;
+    	case S_PLAY:
+    		play_note(&HEYYEYAAEYAAAEYAEYAA[note]);
+    		_sixteenths = sixteenths;
+    		dur = HEYYEYAAEYAAAEYAEYAA[note].duration;
+    		pad = get_touchpad();
+    		if (pad == HEYYEYAAEYAAAEYAEYAA[note].LED)
+    			note_errors++;
+    		else if (pad >= 0)
+    			BuzzerOnFreq(HEYYEYAAEYAAAEYAEYAA[note].pitch - 30);
+    		if (_sixteenths - sixteenths_passed == dur)
+    		{
+    			note++;
+    			sixteenths_passed = _sixteenths;
+    			BuzzerOff();
+    			if (note_errors == 0) total_errors++;
+    			note_errors = 0;
+    		}
+    		if (read_push_button() == 2)
+    		{
+    			stoptimerA2();
+    			state = S_MENU;
+    			GrClearDisplay(&g_sContext);
+    			BuzzerOff();
+    			note = 0;
+    		}
+    		if (note >= 104)
+    			state = S_WIN;
+    		if (total_errors >= 40)
+    			state = S_LOSE;
+    		break;
+    	case S_LOSE:
+    		GrClearDisplay(&g_sContext);
+    		GrImageDraw(&g_sContext, &skeletor_img, 0, 0);
+			GrFlush(&g_sContext);
+			int i = 0;
+			for (i = 0; i < 4; i++)
+			{
+				play_note(&youlose_song[i]);
+				int j;
+				for (j = 0; j < youlose_song[i].duration; j++)
+					swDelayShort(10);
+			}
+			GrClearDisplay(&g_sContext);
+			swDelay(1);
+			BuzzerOff();
+			state = S_MENU;
+			total_errors = 0;
+    		break;
+    	case S_WIN:
+    		GrClearDisplay(&g_sContext);
+    		GrImageDraw(&g_sContext, &win_img, 0, 0);
+			GrFlush(&g_sContext);
+			swDelay(1);
+			state = S_MENU;
+			total_errors = 0;
+    		break;
+    	}
     }
+}
+
+void resetGlobals(void)
+{
+	note = 0;
+	sixteenths_passed = 0;
+	sixteenths = 0;
+	count = 0;
+	note_errors = 0;
+	total_errors = 0;
+	pad = 0;
+	dur = 0;
+	_sixteenths = 0;
+}
+
+void runtimerA2(void)
+{
+	TA2CTL = TASSEL_1 + MC_1 + ID_0;
+	TA2CCR0 = 327;
+	TA2CCTL0 = CCIE;
+}
+
+void stoptimerA2(void)
+{
+	TA2CTL = MC_0;
+	TA2CCTL0 &= ~CCIE;
+	sixteenths = 0;
+	count = 0;
 }
 
 int read_push_button()
@@ -89,15 +243,7 @@ void play_note(Note* note)
 {
 	set_touchpad(note->LED);
 	BuzzerOnFreq(note->pitch);
-	//Deal with duration.
-	int i;
-	for (i = 0; i < note->duration; i++)
-	{
-		swDelayShort(13);
-	}
-	BuzzerOff();
 	set_touchpad(TOUCHPAD_N);
-	swDelayShort(2);
 }
 
 void set_touchpad(char states)
@@ -106,11 +252,6 @@ void set_touchpad(char states)
 	P1OUT |= (states);
 }
 
-/**
- * @brief Gets the touchpad button that's activated.
- *
- * @return An int, the button pressed. Corresponds to the sprite column.
- */
 int get_touchpad()
 {
     //Get touchpad button pressed. Returns column that the button corresponds to.
@@ -119,15 +260,15 @@ int get_touchpad()
 	case BUTTON_NONE:
 		return -1;
 	case BUTTON_X:
-		return 0;
+		return TOUCHPAD_1;
 	case BUTTON_SQ:
-		return 1;
+		return TOUCHPAD_2;
 	case BUTTON_OCT:
-		return 2;
+		return TOUCHPAD_3;
 	case BUTTON_TRI:
-		return 3;
+		return TOUCHPAD_4;
 	case BUTTON_CIR:
-		return 4;
+		return TOUCHPAD_5;
 	default:
 		return -1;
 	}
