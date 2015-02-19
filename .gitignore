@@ -4,3 +4,4 @@ grlib/*
 Images/*
 LCDDriver/*
 ._.DS_Store
+._.gitignore

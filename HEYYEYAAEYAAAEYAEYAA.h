@@ -9,6 +9,13 @@ Note youlose_song[] = {
 		{ NOTE_G4, 8, TOUCHPAD_3 },
 };
 
+Note youwin_song[] = {
+		{ NOTE_A5, 2, TOUCHPAD_1 },
+		{ NOTE_AS5, 2, TOUCHPAD_2 },
+		{ NOTE_B5, 2, TOUCHPAD_3 },
+		{ NOTE_C6, 8, TOUCHPAD_4 },
+};
+
 Note HEYYEYAAEYAAAEYAEYAA[] = {
     { NOTE_F5, 2, TOUCHPAD_3 },
     { NOTE_F5, 2, TOUCHPAD_3 },

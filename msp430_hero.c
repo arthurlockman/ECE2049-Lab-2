@@ -29,8 +29,8 @@ unsigned int sixteenths_passed = 0;
 volatile unsigned int count = 0;
 volatile unsigned int sixteenths = 0;
 int countdown_state = 1;
-int note_errors = 0;
-int total_errors = 0;
+unsigned int note_errors = 0;
+unsigned int total_errors = 0;
 int pad;
 int dur;
 unsigned int _sixteenths;
@@ -39,7 +39,7 @@ unsigned int _sixteenths;
 __interrupt void TimerA2_ISR(void)
 {
 	count++;
-	if (count % 13 == 0)
+	if (count % 26 == 0)
 		sixteenths++;
 }
 
@@ -57,6 +57,7 @@ void main(void)
     state_t state = S_MENU;
 
     GrClearDisplay(&g_sContext);
+    int i = 0;
     while(1)
     {
     	switch(state)
@@ -104,7 +105,7 @@ void main(void)
     			GrStringDrawCentered(&g_sContext, "Go!", AUTO_STRING_LENGTH,
     			                                 51, 36, TRANSPARENT_TEXT);
     			set_touchpad(TOUCHPAD_1|TOUCHPAD_2|TOUCHPAD_3|TOUCHPAD_4|TOUCHPAD_5);
-    			configLED1_3(~(BIT0 | BIT1 | BIT2));
+    			configLED1_3(BIT0 | BIT1 | BIT2);
     			BuzzerOnFreq(NOTE_C4);
     			break;
     		case 5:
@@ -115,6 +116,7 @@ void main(void)
     		    GrImageDraw(&g_sContext, &he_man_img, 0, 0);
     		    GrFlush(&g_sContext);
     		    BuzzerOff();
+    		    configLED1_3(~(BIT0 | BIT1 | BIT2));
     			runtimerA2();
     			break;
     		}
@@ -130,7 +132,7 @@ void main(void)
     		if (pad == HEYYEYAAEYAAAEYAEYAA[note].LED)
     			note_errors++;
     		else if (pad >= 0)
-    			BuzzerOnFreq(HEYYEYAAEYAAAEYAEYAA[note].pitch - 30);
+    			BuzzerOnFreq(NOTE_A3);
     		if (_sixteenths - sixteenths_passed == dur)
     		{
     			note++;
@@ -147,16 +149,15 @@ void main(void)
     			BuzzerOff();
     			note = 0;
     		}
-    		if (note >= 104)
+    		if (note >= 105)
     			state = S_WIN;
-    		if (total_errors >= 40)
+    		if (total_errors >= 20)
     			state = S_LOSE;
     		break;
     	case S_LOSE:
     		GrClearDisplay(&g_sContext);
     		GrImageDraw(&g_sContext, &skeletor_img, 0, 0);
 			GrFlush(&g_sContext);
-			int i = 0;
 			for (i = 0; i < 4; i++)
 			{
 				play_note(&youlose_song[i]);
@@ -174,7 +175,14 @@ void main(void)
     		GrClearDisplay(&g_sContext);
     		GrImageDraw(&g_sContext, &win_img, 0, 0);
 			GrFlush(&g_sContext);
-			swDelay(1);
+			for (i = 0; i < 4; i++)
+			{
+				play_note(&youwin_song[i]);
+				int j;
+				for (j = 0; j < youwin_song[i].duration; j++)
+					swDelayShort(10);
+			}
+			BuzzerOff();
 			state = S_MENU;
 			total_errors = 0;
     		break;
@@ -198,7 +206,7 @@ void resetGlobals(void)
 void runtimerA2(void)
 {
 	TA2CTL = TASSEL_1 + MC_1 + ID_0;
-	TA2CCR0 = 327;
+	TA2CCR0 = 163;
 	TA2CCTL0 = CCIE;
 }
 
